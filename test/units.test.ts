@@ -53,6 +53,28 @@ test('temperature result carries dimension "temperature"', () => {
   assert.equal(convert(0, 'C', 'F').dimension, 'temperature');
 });
 
+test('volume: gal to l', () => {
+  const result = convert(1, 'gal', 'l');
+  assert.ok(Math.abs(result.value - 3.785411784) < 1e-9);
+  assert.equal(result.dimension, 'volume');
+});
+
+test('volume: m3 to l', () => {
+  const result = convert(1, 'm3', 'l');
+  assert.equal(result.value, 1000);
+});
+
+test('angle: deg to rad', () => {
+  const result = convert(180, 'deg', 'rad');
+  assert.ok(Math.abs(result.value - Math.PI) < 1e-9);
+  assert.equal(result.dimension, 'angle');
+});
+
+test('angle: turn to deg', () => {
+  const result = convert(1, 'turn', 'deg');
+  assert.ok(Math.abs(result.value - 360) < 1e-9);
+});
+
 test('dimension mismatch throws', () => {
   assert.throws(() => convert(1, 'km', 'kg'), /量纲不匹配/);
 });
@@ -82,7 +104,7 @@ test('dimensionOf returns null for unknown units', () => {
 test('supportedUnits lists every unit exactly once, including temperature', () => {
   const units = supportedUnits();
   assert.equal(new Set(units).size, units.length);
-  for (const u of ['m', 'km', 'kg', 'lb', 's', 'h', 'C', 'F', 'K']) {
+  for (const u of ['m', 'km', 'kg', 'lb', 's', 'h', 'C', 'F', 'K', 'l', 'gal', 'rad', 'deg']) {
     assert.ok(units.includes(u), `expected ${u} in supportedUnits()`);
   }
 });

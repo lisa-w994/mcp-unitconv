@@ -3,6 +3,8 @@ const FACTORS: Record<string, Record<string, number>> = {
   length: { m: 1, km: 1000, cm: 0.01, mm: 0.001, mi: 1609.344, ft: 0.3048, in: 0.0254 },
   mass: { g: 1, kg: 1000, mg: 0.001, lb: 453.59237, oz: 28.349523125 },
   time: { s: 1, min: 60, h: 3600, d: 86400, ms: 0.001 },
+  volume: { l: 1, ml: 0.001, m3: 1000, gal: 3.785411784, qt: 0.946352946, floz: 0.0295735295625 },
+  angle: { rad: 1, deg: Math.PI / 180, grad: Math.PI / 200, turn: 2 * Math.PI },
 };
 
 export interface ConvertResult {

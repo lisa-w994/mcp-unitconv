@@ -3,7 +3,7 @@
 An MCP server that exposes unit conversion as a tool, so an assistant can convert
 between units without guessing arithmetic.
 
-Supports length, mass, time and temperature.
+Supports length, mass, time, temperature, volume and angle.
 
 ## Install
 

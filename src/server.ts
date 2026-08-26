@@ -34,7 +34,7 @@ function replyError(id: number | string | null | undefined, code: number, messag
 const CONVERT_TOOL = {
   name: 'convert',
   description:
-    'Convert a numeric value between units of the same dimension (length, mass, time, temperature).',
+    'Convert a numeric value between units of the same dimension (length, mass, time, temperature, volume, angle).',
   inputSchema: {
     type: 'object',
     properties: {
