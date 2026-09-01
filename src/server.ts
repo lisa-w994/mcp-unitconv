@@ -7,12 +7,16 @@ import { convert, supportedUnits } from './units.ts';
  * here so the package has zero runtime dependencies.
  */
 
-interface JsonRpcRequest {
+export interface JsonRpcRequest {
   jsonrpc: '2.0';
   id?: number | string | null;
   method: string;
   params?: Record<string, unknown>;
 }
+
+export type JsonRpcResponse =
+  | { jsonrpc: '2.0'; id: number | string | null; result: unknown }
+  | { jsonrpc: '2.0'; id: number | string | null; error: { code: number; message: string } };
 
 const PROTOCOL_VERSION = '2024-11-05';
 
@@ -21,14 +25,18 @@ function send(message: unknown): void {
 }
 
 // A request without "id" is a notification: no response is expected or sent.
-function reply(id: number | string | null | undefined, result: unknown): void {
-  if (id === undefined) return;
-  send({ jsonrpc: '2.0', id, result });
+function reply(id: number | string | null | undefined, result: unknown): JsonRpcResponse | null {
+  if (id === undefined) return null;
+  return { jsonrpc: '2.0', id, result };
 }
 
-function replyError(id: number | string | null | undefined, code: number, message: string): void {
-  if (id === undefined) return;
-  send({ jsonrpc: '2.0', id, error: { code, message } });
+function replyError(
+  id: number | string | null | undefined,
+  code: number,
+  message: string,
+): JsonRpcResponse | null {
+  if (id === undefined) return null;
+  return { jsonrpc: '2.0', id, error: { code, message } };
 }
 
 const CONVERT_TOOL = {
@@ -46,12 +54,12 @@ const CONVERT_TOOL = {
   },
 };
 
-interface ToolCallResult {
+export interface ToolCallResult {
   content: { type: 'text'; text: string }[];
   isError?: boolean;
 }
 
-function handleToolsCall(params: Record<string, unknown> | undefined): ToolCallResult {
+export function handleToolsCall(params: Record<string, unknown> | undefined): ToolCallResult {
   const name = params?.name;
   if (name !== 'convert') {
     return { content: [{ type: 'text', text: `unknown tool: ${String(name)}` }], isError: true };
@@ -68,48 +76,55 @@ function handleToolsCall(params: Record<string, unknown> | undefined): ToolCallR
   }
 }
 
-function handleRequest(req: JsonRpcRequest): void {
+// Handles one already-parsed request and returns the response to send, or
+// null for notifications (which get no reply).
+export function handleRequest(req: JsonRpcRequest): JsonRpcResponse | null {
   switch (req.method) {
     case 'initialize':
-      reply(req.id, {
+      return reply(req.id, {
         protocolVersion: PROTOCOL_VERSION,
         capabilities: { tools: {} },
         serverInfo: { name: 'mcp-unitconv', version: '0.1.0' },
       });
-      break;
     case 'notifications/initialized':
-      break;
+      return null;
     case 'tools/list':
-      reply(req.id, { tools: [CONVERT_TOOL] });
-      break;
+      return reply(req.id, { tools: [CONVERT_TOOL] });
     case 'tools/call':
-      reply(req.id, handleToolsCall(req.params));
-      break;
+      return reply(req.id, handleToolsCall(req.params));
     case 'ping':
-      reply(req.id, {});
-      break;
+      return reply(req.id, {});
     default:
-      replyError(req.id, -32601, `method not found: ${req.method}`);
+      return replyError(req.id, -32601, `method not found: ${req.method}`);
   }
 }
 
-const rl = createInterface({ input: process.stdin, terminal: false });
-
-rl.on('line', (line) => {
+// Parses one line of input and returns the response to send, or null.
+export function handleLine(line: string): JsonRpcResponse | null {
   const trimmed = line.trim();
-  if (!trimmed) return;
+  if (!trimmed) return null;
 
   let req: JsonRpcRequest;
   try {
     req = JSON.parse(trimmed);
   } catch {
-    replyError(null, -32700, 'parse error');
-    return;
+    return replyError(null, -32700, 'parse error');
   }
 
   try {
-    handleRequest(req);
+    return handleRequest(req);
   } catch (err) {
-    replyError(req.id, -32603, err instanceof Error ? err.message : String(err));
+    return replyError(req.id, -32603, err instanceof Error ? err.message : String(err));
   }
-});
+}
+
+// Only wire up stdin when run directly, not when imported (e.g. by tests).
+const isMain = process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`;
+
+if (isMain) {
+  const rl = createInterface({ input: process.stdin, terminal: false });
+  rl.on('line', (line) => {
+    const response = handleLine(line);
+    if (response) send(response);
+  });
+}
