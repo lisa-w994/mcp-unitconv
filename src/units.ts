@@ -17,7 +17,8 @@ export interface ConvertResult {
 /** 找出某个单位属于哪个量纲，找不到返回 null。 */
 export function dimensionOf(unit: string): string | null {
   for (const [dim, table] of Object.entries(FACTORS)) {
-    if (unit in table) return dim;
+    // 用 hasOwn 而不是 in，否则 "constructor"、"toString" 之类会被当成单位。
+    if (Object.hasOwn(table, unit)) return dim;
   }
   return null;
 }

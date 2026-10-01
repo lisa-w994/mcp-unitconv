@@ -101,6 +101,17 @@ test('dimensionOf returns null for unknown units', () => {
   assert.equal(dimensionOf('parsec'), null);
 });
 
+test('dimensionOf ignores inherited object properties', () => {
+  assert.equal(dimensionOf('constructor'), null);
+  assert.equal(dimensionOf('toString'), null);
+  assert.equal(dimensionOf('__proto__'), null);
+});
+
+test('convert rejects inherited property names as units', () => {
+  assert.throws(() => convert(1, 'constructor', 'm'), /未知单位/);
+  assert.throws(() => convert(1, 'm', 'hasOwnProperty'), /未知单位/);
+});
+
 test('supportedUnits lists every unit exactly once, including temperature', () => {
   const units = supportedUnits();
   assert.equal(new Set(units).size, units.length);
